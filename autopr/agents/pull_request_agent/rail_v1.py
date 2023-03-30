@@ -2,13 +2,14 @@ from typing import Union
 
 from git.repo import Repo
 
-from autopr.models.artifacts import Issue
-from autopr.models.rail_objects import PullRequestDescription, InitialFileSelectResponse, LookAtFilesResponse
+from autopr.models.artifacts import Issue, PullRequest
+from autopr.models.rail_objects import PullRequestDescription, InitialFileSelectResponse, LookAtFilesResponse, \
+    PullRequestAmendment
 from autopr.models.prompt_rails import ProposePullRequest, FileDescriptor, InitialFileSelect, LookAtFiles, \
     ContinueLookingAtFiles
 from .base import PullRequestAgentBase
 from autopr.utils.repo import repo_to_file_descriptors
-from ...models.events import IssueOpenedEvent, IssueCommentEvent
+from ...models.events import IssueOpenedEvent, IssueCommentEvent, PullRequestCommentEvent, CodeReviewCommentEvent
 
 
 class RailPullRequestAgent(PullRequestAgentBase):
@@ -150,3 +151,12 @@ class RailPullRequestAgent(PullRequestAgentBase):
             notes = "The repository's contents were irrelevant, only create new files to address the issue."
 
         return self.propose_pull_request(issue_text, notes)
+
+    def _amend_pull_request(
+        self,
+        repo: Repo,
+        issue: Issue,
+        pull_request: PullRequest,
+        event: Union[IssueCommentEvent, PullRequestCommentEvent, CodeReviewCommentEvent],
+    ) -> Union[None, str, PullRequestAmendment]:
+        raise NotImplementedError
