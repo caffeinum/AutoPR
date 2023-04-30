@@ -100,8 +100,12 @@ class OpenAIChatCompletionsRepo(CompletionsRepo):
             {"role": "system", "content": system_prompt},
         ]
         for example in examples:
-            messages.append({"role": "user", "content": example[0]})
-            messages.append({"role": "assistant", "content": example[1]})
+            messages.extend(
+                (
+                    {"role": "user", "content": example[0]},
+                    {"role": "assistant", "content": example[1]},
+                )
+            )
         messages.append({"role": "user", "content": prompt})
 
         openai_response = openai.ChatCompletion.create(

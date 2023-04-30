@@ -50,28 +50,28 @@ class FileDescriptor(pydantic.BaseModel):
 
 
 def trim_chunk(file_desc_with_chunk_start_end: list[FileDescriptor]) -> bool:
-    if file_desc_with_chunk_start_end:
-        # Find file with most chunks
-        longest_num = 0
-        longest_i = 0
-        for i, desc in enumerate(file_desc_with_chunk_start_end):
-            num_chunks = desc.end_chunk - desc.start_chunk
-            if num_chunks > longest_num:
-                longest_num = num_chunks
-                longest_i = i
+    if not file_desc_with_chunk_start_end:
+        return False
+    # Find file with most chunks
+    longest_num = 0
+    longest_i = 0
+    for i, desc in enumerate(file_desc_with_chunk_start_end):
+        num_chunks = desc.end_chunk - desc.start_chunk
+        if num_chunks > longest_num:
+            longest_num = num_chunks
+            longest_i = i
 
-        desc = file_desc_with_chunk_start_end[longest_i]
+    desc = file_desc_with_chunk_start_end[longest_i]
 
-        # If we've already looked at the whole file, remove it from the list
-        if desc.start_chunk == desc.end_chunk - 1:
-            del file_desc_with_chunk_start_end[longest_i]
-            return True
-
-        # Otherwise, shave a chunk off the end
-        desc.end_chunk -= 1
-        file_desc_with_chunk_start_end[longest_i] = desc
+    # If we've already looked at the whole file, remove it from the list
+    if desc.start_chunk == desc.end_chunk - 1:
+        del file_desc_with_chunk_start_end[longest_i]
         return True
-    return False
+
+    # Otherwise, shave a chunk off the end
+    desc.end_chunk -= 1
+    file_desc_with_chunk_start_end[longest_i] = desc
+    return True
 
 
 def filter_seen_chunks(seen_fds: list[FileDescriptor], prospective_fds: list[FileDescriptor]) -> list[FileDescriptor]:

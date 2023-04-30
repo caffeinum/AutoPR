@@ -23,9 +23,7 @@ def run_diff_tests_for_file(
     # Create temporary directory, put the file in, create a repo
     tmp_dir = tempfile.TemporaryDirectory()
     if file_contents is not None:
-        # Create dir if file is in a subdirectory
-        dir_name = os.path.dirname(filename)
-        if dir_name:
+        if dir_name := os.path.dirname(filename):
             os.makedirs(os.path.join(tmp_dir.name, dir_name))
         with open(os.path.join(tmp_dir.name, filename), 'w') as f:
             f.write(file_contents)
@@ -91,7 +89,7 @@ def test_unidiff(subtests):
                 f for f in os.listdir(test_case_dir)
                 if f.endswith('.diff') and f != 'correct.diff'
             ]
-            assert len(other_diff_names) > 0
+            assert other_diff_names
             # Assert there is a file named f"after_{filename}"
             after_file_path = os.path.join(test_case_dir, f"after_{filename}")
             assert os.path.exists(after_file_path)

@@ -16,15 +16,12 @@ class PromptRail(pydantic.BaseModel):
     output_type: ClassVar[typing.Type[RailObject]]
 
     def get_string_params(self) -> dict[str, str]:
-        prompt_params = {}
-        for key, value in self:
-            if isinstance(value, list):
-                prompt_params[key] = '\n\n'.join(
-                    [str(item) for item in value]
-                )
-            else:
-                prompt_params[key] = str(value)
-        return prompt_params
+        return {
+            key: '\n\n'.join([str(item) for item in value])
+            if isinstance(value, list)
+            else str(value)
+            for key, value in self
+        }
 
     def trim_params(self) -> bool:
         log.warning("Naively trimming params", rail=self)

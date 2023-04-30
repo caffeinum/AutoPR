@@ -34,14 +34,11 @@ class GithubEventService(EventService):
         comments_json = response.json()
         self.log.info("Got issue comments", comments=comments_json)
 
-        # Get body
-        comments_list = []
         body_message = Message(
             body=event['issue']['body'] or "",
             author=event['issue']['user']['login'],
         )
-        comments_list.append(body_message)
-
+        comments_list = [body_message]
         # Get comments
         comments = {}
         for comment_json in comments_json:

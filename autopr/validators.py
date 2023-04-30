@@ -21,11 +21,7 @@ def fix_unidiff_line_counts(lines: list[str]) -> list[str]:
         if line.startswith("@@"):
             # Extract the original x and y values
             match = re.match(r"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@", line)
-            if match is None:
-                start_x, start_y = 0, 0
-            else:
-                start_x, start_y = int(match.group(1)), int(match.group(2))
-
+            start_x, start_y = (0, 0) if match is None else (int(match[1]), int(match[2]))
             # Calculate the correct y values based on the hunk content
             x_count, y_count = 0, 0
             j = i + 1
@@ -82,7 +78,7 @@ def remove_hallucinations(lines: List[str], tree: Tree) -> List[str]:
             if filepath_match is None:
                 log.error("Invalid diff", diff=lines)
                 raise ValueError(f"Invalid diff line: {line}")
-            filepath = filepath_match.group(1)
+            filepath = filepath_match[1]
 
             # Get the file content
             try:
@@ -103,7 +99,7 @@ def remove_hallucinations(lines: List[str], tree: Tree) -> List[str]:
                 current_line_number = 1
                 cleaned_lines.append("@@ -1,0 +1,0 @@")
             else:
-                current_line_number = int(match.group(1)) - 1
+                current_line_number = int(match[1]) - 1
                 cleaned_lines.append(line)
             indentation_offset = 0
             first_line_semaphore = 2
@@ -142,10 +138,10 @@ def remove_hallucinations(lines: List[str], tree: Tree) -> List[str]:
             if line.lstrip() == file_line.lstrip():
                 # If indentation is wrong, use that
                 if indentation_offset:
-                    if not file_line:
-                        cleaned_lines.append(" ")
-                    else:
+                    if file_line:
                         cleaned_lines.append(f" {adjust_line_indentation(line[1:], indentation_offset)}")
+                    else:
+                        cleaned_lines.append(" ")
                 else:  # Else, use the real line
                     cleaned_lines.append(f" {file_line}")
                     # Fix indentation also in + lines
@@ -183,12 +179,11 @@ def remove_hallucinations(lines: List[str], tree: Tree) -> List[str]:
                     cleaned_lines.append(f' {check_file_line}')
                     current_line_number = check_line_number + 1
                     break
+        elif not line:
+            cleaned_lines.append(line)
+            current_line_number += 1
         else:
-            if not line:
-                cleaned_lines.append(line)
-                current_line_number += 1
-            else:
-                log.warning("Unknown line: ", line=line)
+            log.warning("Unknown line: ", line=line)
 
     if cleaned_lines[-1] != "":
         cleaned_lines[-1] = ""
@@ -196,6 +191,9 @@ def remove_hallucinations(lines: List[str], tree: Tree) -> List[str]:
 
 
 def create_unidiff_validator(repo: Repo, diff_service: DiffService):
+
+
+
     class Unidiff(Validator):
         """Validate value is a valid unidiff.
         - Name for `format` attribute: `unidiff`
@@ -216,7 +214,7 @@ def create_unidiff_validator(repo: Repo, diff_service: DiffService):
             return schema
 
         def validate(self, key: str, value: Any, schema: Union[Dict, List]) -> Union[Dict, List]:
-            log.debug(f"Validating unidiff...", value=value)
+            log.debug("Validating unidiff...", value=value)
 
             try:
                 diff_service.apply_diff(value, check=True)
@@ -261,15 +259,16 @@ def create_unidiff_validator(repo: Repo, diff_service: DiffService):
                     lines[i] = " "
 
             # Ensure the whole thing ends with a newline
-            if not lines[-1] == "":
+            if lines[-1] != "":
                 lines.append("")
 
-            # If there are any +++ @@ lines, without a preceding --- line,
-            # add a `--- /dev/null` line before it
-            insert_indices: list[int] = []
-            for i, line in enumerate(lines):
-                if line.startswith("+++ ") and lines[i + 1].startswith('@@ ') and not lines[i - 1].startswith("---"):
-                    insert_indices.append(i)
+            insert_indices: list[int] = [
+                i
+                for i, line in enumerate(lines)
+                if line.startswith("+++ ")
+                and lines[i + 1].startswith('@@ ')
+                and not lines[i - 1].startswith("---")
+            ]
             for i, index in enumerate(insert_indices):
                 lines.insert(index + i, "--- /dev/null")
 
@@ -297,9 +296,9 @@ def create_unidiff_validator(repo: Repo, diff_service: DiffService):
 
                     filenames = []
                     if minus_filename_match is not None:
-                        filenames.append(minus_filename_match.group(1))
+                        filenames.append(minus_filename_match[1])
                     if plus_filename_match is not None:
-                        filenames.append(plus_filename_match.group(1))
+                        filenames.append(plus_filename_match[1])
                     # If both filenames are present, use the shorter one
                     if len(filenames) == 2:
                         filename = min(filenames, key=len)
@@ -319,11 +318,7 @@ def create_unidiff_validator(repo: Repo, diff_service: DiffService):
                 if line.startswith("---") and lines[i + 1].startswith("+++") and lines[i + 2].startswith("@@"):
                     # Extract the filename after +++
                     filename_match = re.match(r"\+\+\+ (.+)", lines[i + 1])
-                    if filename_match is None:
-                        filename = "new_file"
-                    else:
-                        filename = filename_match.group(1)
-
+                    filename = "new_file" if filename_match is None else filename_match[1]
                     # Check if the file is in the tree
                     if filename not in tree:
                         # See if any of the filepaths in the tree end with the filename
@@ -338,7 +333,7 @@ def create_unidiff_validator(repo: Repo, diff_service: DiffService):
                                 lines[i + 1] = f"+++ {path}"
                                 break
                         else:
-                            lines[i] = f"--- /dev/null"
+                            lines[i] = "--- /dev/null"
 
             # If there is a lone @@ line, prefix it with the --- and +++ lines from the previous block
             current_block: list[str] = []
@@ -359,11 +354,11 @@ def create_unidiff_validator(repo: Repo, diff_service: DiffService):
                     j = i + 3
                     while j < len(lines) and not (lines[j].startswith("---") and lines[j + 1].startswith("+++") and lines[j + 2].startswith("@@")):
                         if lines[j].startswith(" "):
-                            lines[j] = "+" + lines[j][1:]
+                            lines[j] = f"+{lines[j][1:]}"
                         elif lines[j].startswith("-"):
-                            lines[j] = "+" + lines[j][1:]
+                            lines[j] = f"+{lines[j][1:]}"
                         elif not lines[j].startswith("+"):
-                            lines[j] = "+" + lines[j]
+                            lines[j] = f"+{lines[j]}"
                         j += 1
 
             # Filter out new lines if they are the first line in a hunk
@@ -388,6 +383,7 @@ def create_unidiff_validator(repo: Repo, diff_service: DiffService):
 
             error.schema[error.key] = value
             return error.schema
+
 
     return register_validator(name="unidiff", data_type="string")(Unidiff)
 

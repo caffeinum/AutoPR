@@ -112,10 +112,7 @@ class ChainService:
 
     def run_chain(self, chain: PromptChain) -> Any:
         self.publish_service.publish_update(f"Running chain {chain.__class__.__name__}")
-        if chain.output_parser:
-            parser = chain.output_parser()
-        else:
-            parser = None
+        parser = chain.output_parser() if chain.output_parser else None
         prompt_value = self._get_model_template(chain, parser)
         str_prompt = prompt_value.to_string()
         self.log.info("Running chain", prompt=str_prompt)
