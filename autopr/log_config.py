@@ -6,13 +6,13 @@ def configure_logging(pretty=True):
         level=logging.INFO
     )
 
-    if pretty:
-        processors = [
+    processors = (
+        [
             structlog.dev.ConsoleRenderer(colors=True),
         ]
-    else:
-        processors = []
-
+        if pretty
+        else []
+    )
     structlog.configure(
         processors=processors,
         cache_logger_on_first_use=True,

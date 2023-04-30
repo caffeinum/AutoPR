@@ -273,7 +273,7 @@ class RailPullRequestAgent(PullRequestAgentBase):
             if len(response.filepaths) != len(real_filepaths):
                 self.log.debug(f'Got hallucinated filepaths: {set(response.filepaths) - set(real_filepaths)}')
             if real_filepaths:
-                self.log.debug(f'Got filepaths:')
+                self.log.debug('Got filepaths:')
                 for filepath in real_filepaths:
                     self.log.debug(f' -  {filepath}')
 
@@ -369,10 +369,7 @@ class RailPullRequestAgent(PullRequestAgentBase):
         # Get files
         files = repo_to_file_descriptors(repo, self.file_context_token_limit, self.file_chunk_size)
 
-        # Get the filepaths to look at
-        filepaths = self.get_initial_filepaths(files, issue)
-
-        if filepaths:
+        if filepaths := self.get_initial_filepaths(files, issue):
             # Look at the files
             notes = self.write_notes_about_files(files, issue, filepaths)
         else:

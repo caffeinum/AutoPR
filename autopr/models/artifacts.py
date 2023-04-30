@@ -25,7 +25,7 @@ class Issue(Thread):
     author: str
 
     def __str__(self):
-        return f"#{self.number} {self.title}\n\n" + super().__str__()
+        return f"#{self.number} {self.title}\n\n{super().__str__()}"
 
 
 DiffStr: TypeAlias = str

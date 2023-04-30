@@ -16,10 +16,7 @@ class ContextCodeHunk(pydantic.BaseModel):
         for num, line_content in self.code_hunk:
             num_width = len(str(num))
             line = ' ' * (max_line_num_width - num_width) + str(num)
-            if num in self.highlight_line_numbers:
-                line += ' * '
-            else:
-                line += ' | '
+            line += ' * ' if num in self.highlight_line_numbers else ' | '
             line += line_content
             lines.append(line)
         return '\n'.join(lines)
@@ -36,4 +33,4 @@ class ContextFile(pydantic.BaseModel):
         code_hunks_s = '\n\n'.join(
             [str(code_hunk) for code_hunk in self.code_hunks]
         )
-        return f">>> File: {self.filepath}\n\n" + code_hunks_s
+        return f">>> File: {self.filepath}\n\n{code_hunks_s}"

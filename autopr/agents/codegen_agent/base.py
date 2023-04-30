@@ -46,9 +46,7 @@ class CodegenAgentBase:
         self.publish_service.start_section(f"▶️ Implementing: {current_commit.commit_message}")
         self._generate_changes(repo, issue, pr_desc, current_commit)
 
-        # get diff result
-        diff = self.diff_service.get_diff()
-        if diff:
+        if diff := self.diff_service.get_diff():
             # put in backticks
             diff = f"```diff\n{diff}\n```"
             self.publish_service.end_section(

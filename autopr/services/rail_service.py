@@ -81,9 +81,11 @@ class RailService:
                 raw_response=raw_o,
                 default_open=('raw_response',)
             )
-            log.warning(f'Got None from rail',
-                        rail_object=rail_object.__name__,
-                        raw_output=raw_o)
+            log.warning(
+                'Got None from rail',
+                rail_object=rail_object.__name__,
+                raw_output=raw_o,
+            )
             return None
 
         try:
@@ -97,10 +99,12 @@ class RailService:
             )
             return parsed_obj
         except pydantic.ValidationError:
-            log.warning(f'Got invalid output from rail',
-                        rail_object=rail_object.__name__,
-                        raw_output=raw_o,
-                        dict_output=dict_o)
+            log.warning(
+                'Got invalid output from rail',
+                rail_object=rail_object.__name__,
+                raw_output=raw_o,
+                dict_output=dict_o,
+            )
             self.publish_service.publish_call(
                 summary=f"{rail_object.__name__}: Failed to parse output dict",
                 prompt=formatted_prompt,
@@ -133,9 +137,7 @@ class RailService:
                 system_prompt=self.raw_system_prompt,
             )
             self.publish_service.publish_call(
-                summary=f"Ran raw query",
-                prompt=initial_prompt,
-                response=prompt,
+                summary="Ran raw query", prompt=initial_prompt, response=prompt
             )
         return self.run_rail_object(rail.output_type, prompt)
 

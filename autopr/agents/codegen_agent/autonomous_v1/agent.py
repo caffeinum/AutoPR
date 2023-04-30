@@ -61,8 +61,6 @@ class AutonomousCodegenAgent(CodegenAgentBase):
 
         with open(path, 'r') as f:
             lines = self._split_into_lines(f.read())
-        code_hunk: list[tuple[int, str]] = []
-
         # Get and limit line numbers
         start_line = start_line or 1
         start_line = min(max(start_line, 1), len(lines))
@@ -70,8 +68,10 @@ class AutonomousCodegenAgent(CodegenAgentBase):
         end_line = min(max(end_line, 1), len(lines))
         end_line = max(start_line, end_line)
 
-        for line_num in range(start_line, end_line + 1):
-            code_hunk.append((line_num, lines[line_num - 1]))
+        code_hunk: list[tuple[int, str]] = [
+            (line_num, lines[line_num - 1])
+            for line_num in range(start_line, end_line + 1)
+        ]
         return code_hunk
 
     def _make_context(
@@ -177,7 +177,7 @@ class AutonomousCodegenAgent(CodegenAgentBase):
                 description=edit_file_action.description,
             )
             effect = self._create_new_file(repo, issue, pr_desc, current_commit, context, create_file_action)
-            return "File does not exist, creating instead: " + effect
+            return f"File does not exist, creating instead: {effect}"
         self.publish_service.update_section(title=f"Editing existing file: {edit_file_action.filepath}")
 
         # Grab file contents
@@ -203,11 +203,12 @@ class AutonomousCodegenAgent(CodegenAgentBase):
             start_line, end_line = min(max(start_line, 1), len(lines)), min(max(end_line, 1), len(lines))
             end_line = max(start_line, end_line)
 
-            code_hunk_lines: list[tuple[int, str]] = []
             context_start_line = max(1, start_line - self.context_size)
             context_end_line = min(len(lines), end_line + self.context_size)
-            for line_num in range(context_start_line, context_end_line + 1):
-                code_hunk_lines.append((line_num, lines[line_num - 1]))
+            code_hunk_lines: list[tuple[int, str]] = [
+                (line_num, lines[line_num - 1])
+                for line_num in range(context_start_line, context_end_line + 1)
+            ]
             highlight_line_nums = list(range(start_line, end_line + 1))
             code_hunk = ContextCodeHunk(
                 code_hunk=code_hunk_lines,
@@ -224,11 +225,7 @@ class AutonomousCodegenAgent(CodegenAgentBase):
                 for line in highlighted_lines
                 if line.strip()
             ]
-            if not lines_for_indent:
-                indent = 0
-            else:
-                indent = min(lines_for_indent)
-
+            indent = min(lines_for_indent, default=0)
         # Run edit file langchain
         edit_file_chain = RewriteCodeHunkChain(
             issue=issue,
@@ -340,7 +337,10 @@ class AutonomousCodegenAgent(CodegenAgentBase):
                 break
 
             # Add the file into the context of the rest of the commits, if it's not yet there
-            if not any(action_obj.filepath == fh.filepath for fh in current_commit.relevant_file_hunks):
+            if all(
+                action_obj.filepath != fh.filepath
+                for fh in current_commit.relevant_file_hunks
+            ):
                 current_commit.relevant_file_hunks.append(
                     FileHunk(
                         filepath=action_obj.filepath,
